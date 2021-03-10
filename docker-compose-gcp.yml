@@ -1,0 +1,1305 @@
+version: "3.8"
+
+services:
+  compose-post-service-jaeger-agent:
+    image: jaegertracing/jaeger-agent:latest
+    hostname: compose-post-service-jaeger-agent
+    command: ["--reporter.grpc.host-port=jaeger-collector:14250"]
+    ports:
+      - target: 6831
+        published: 6831
+        protocol: udp
+        mode: host
+      - target: 5778
+        published: 5778
+        protocol: tcp
+        mode: host
+      - target: 14271
+        published: 14271
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 5
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == compose-post-service
+      restart_policy:
+        condition: any
+    depends_on:
+      - jaeger-collector
+
+  compose-post-service:
+    depends_on:
+      - compose-post-service-jaeger-agent
+    deploy:
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == compose-post-service
+      replicas: 5
+      resources:
+        limits:
+          cpus: "10"
+          memory: 10G
+      restart_policy:
+        condition: any
+    command: ["ComposePostService"]
+    hostname: compose-post-service
+    image: yg397/social-network-microservices:root_cause-gcp
+    volumes:
+      - ./config:/social-network-microservices/config
+
+  home-timeline-redis-jaeger-agent:
+    image: jaegertracing/jaeger-agent:latest
+    hostname: home-timeline-redis-jaeger-agent
+    command: ["--reporter.grpc.host-port=jaeger-collector:14250"]
+    ports:
+      - target: 6831
+        published: 6831
+        protocol: udp
+        mode: host
+      - target: 5778
+        published: 5778
+        protocol: tcp
+        mode: host
+      - target: 14271
+        published: 14271
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 5
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == home-timeline-redis
+      restart_policy:
+        condition: any
+    depends_on:
+      - jaeger-collector
+
+  home-timeline-redis:
+    depends_on:
+      - home-timeline-redis-jaeger-agent
+    deploy:
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == home-timeline-redis
+      replicas: 5
+      resources:
+        limits:
+          cpus: "2"
+          memory: 4G
+    hostname: home-timeline-redis
+    image: redis
+    command: --port 6379 --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --appendonly yes
+
+  home-timeline-service-jaeger-agent:
+    image: jaegertracing/jaeger-agent:latest
+    hostname: home-timeline-service-jaeger-agent
+    command: ["--reporter.grpc.host-port=jaeger-collector:14250"]
+    ports:
+      - target: 6831
+        published: 6831
+        protocol: udp
+        mode: host
+      - target: 5778
+        published: 5778
+        protocol: tcp
+        mode: host
+      - target: 14271
+        published: 14271
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 5
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == home-timeline-service
+      restart_policy:
+        condition: any
+    depends_on:
+      - jaeger-collector
+
+  home-timeline-service:
+    depends_on:
+      - home-timeline-service-jaeger-agent
+    deploy:
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == home-timeline-service
+      replicas: 5
+      resources:
+        limits:
+          cpus: "4"
+          memory: 4G
+      restart_policy:
+        condition: any
+    command: ["HomeTimelineService"]
+    hostname: home-timeline-service
+    image: yg397/social-network-microservices:root_cause-gcp
+    volumes:
+      - ./config:/social-network-microservices/config
+
+  media-frontend-jaeger-agent:
+    image: jaegertracing/jaeger-agent:latest
+    hostname: media-frontend-jaeger-agent
+    command: ["--reporter.grpc.host-port=jaeger-collector:14250"]
+    ports:
+      - target: 6831
+        published: 6831
+        protocol: udp
+        mode: host
+      - target: 5778
+        published: 5778
+        protocol: tcp
+        mode: host
+      - target: 14271
+        published: 14271
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 1
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == media-frontend
+      restart_policy:
+        condition: any
+    depends_on:
+      - jaeger-collector
+
+  media-frontend:
+    depends_on:
+      - media-frontend-jaeger-agent
+    deploy:
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == media-frontend
+      replicas: 1
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+      restart_policy:
+        condition: any
+    hostname: media-frontend
+    image: yg397/media-frontend:xenial
+    ports:
+      - 8081:8080
+    volumes:
+      - ./media-frontend/lua-scripts:/usr/local/openresty/nginx/lua-scripts
+      - ./media-frontend/conf/nginx.conf:/usr/local/openresty/nginx/conf/nginx.conf
+
+  media-memcached-jaeger-agent:
+    image: jaegertracing/jaeger-agent:latest
+    hostname: media-memcached-jaeger-agent
+    command: ["--reporter.grpc.host-port=jaeger-collector:14250"]
+    ports:
+      - target: 6831
+        published: 6831
+        protocol: udp
+        mode: host
+      - target: 5778
+        published: 5778
+        protocol: tcp
+        mode: host
+      - target: 14271
+        published: 14271
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 1
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == media-memcached
+      restart_policy:
+        condition: any
+    depends_on:
+      - jaeger-collector
+
+  media-memcached:
+    depends_on:
+      - media-memcached-jaeger-agent
+    deploy:
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == media-memcached
+      replicas: 1
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+    hostname: media-memcached
+    image: memcached
+
+  media-mongodb-jaeger-agent:
+    image: jaegertracing/jaeger-agent:latest
+    hostname: media-mongodb-jaeger-agent
+    command: ["--reporter.grpc.host-port=jaeger-collector:14250"]
+    ports:
+      - target: 6831
+        published: 6831
+        protocol: udp
+        mode: host
+      - target: 5778
+        published: 5778
+        protocol: tcp
+        mode: host
+      - target: 14271
+        published: 14271
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 1
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == media-mongodb
+      restart_policy:
+        condition: any
+    depends_on:
+      - jaeger-collector
+
+  media-mongodb:
+    depends_on:
+      - media-mongodb-jaeger-agent
+    deploy:
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == media-mongodb
+      replicas: 1
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+    hostname: media-mongodb
+    image: mongo
+    command: "mongod --nojournal --quiet"
+    # command: "mongod --serviceExecutor adaptive --listenBacklog 1024 --syncdelay 3600 --wiredTigerCacheSizeGB 2"
+
+  media-service-jaeger-agent:
+    image: jaegertracing/jaeger-agent:latest
+    hostname: media-service-jaeger-agent
+    command: ["--reporter.grpc.host-port=jaeger-collector:14250"]
+    ports:
+      - target: 6831
+        published: 6831
+        protocol: udp
+        mode: host
+      - target: 5778
+        published: 5778
+        protocol: tcp
+        mode: host
+      - target: 14271
+        published: 14271
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 5
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == media-service
+      restart_policy:
+        condition: any
+    depends_on:
+      - jaeger-collector
+
+  media-service:
+    depends_on:
+      - media-mongodb
+      - media-service-jaeger-agent
+    deploy:
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == media-service
+      replicas: 5
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+      restart_policy:
+        condition: any
+    command: ["MediaService"]
+    hostname: media-service
+    image: yg397/social-network-microservices:root_cause-gcp
+    volumes:
+      - ./config:/social-network-microservices/config
+
+  nginx-web-server-jaeger-agent:
+    image: jaegertracing/jaeger-agent:latest
+    hostname: nginx-web-server-jaeger-agent
+    command: ["--reporter.grpc.host-port=jaeger-collector:14250"]
+    ports:
+      - target: 6831
+        published: 6831
+        protocol: udp
+        mode: host
+      - target: 5778
+        published: 5778
+        protocol: tcp
+        mode: host
+      - target: 14271
+        published: 14271
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 1
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == nginx-web-server
+      restart_policy:
+        condition: any
+    depends_on:
+      - jaeger-collector
+
+  nginx-web-server:
+    depends_on:
+      - nginx-web-server-jaeger-agent
+    deploy:
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == nginx-web-server
+      replicas: 1
+      resources:
+        limits:
+          cpus: "10"
+          memory: 10G
+      restart_policy:
+        condition: any
+    hostname: nginx-web-server
+    image: yg397/openresty-thrift:xenial
+    ports:
+      - 8080:8080
+    volumes:
+      - ./nginx-web-server/lua-scripts:/usr/local/openresty/nginx/lua-scripts
+      - ./nginx-web-server/pages:/usr/local/openresty/nginx/pages
+      - ./nginx-web-server/conf/nginx.conf:/usr/local/openresty/nginx/conf/nginx.conf
+      - ./nginx-web-server/jaeger-config.json:/usr/local/openresty/nginx/jaeger-config.json
+      - ./gen-lua:/gen-lua
+
+  post-storage-memcached-jaeger-agent:
+    image: jaegertracing/jaeger-agent:latest
+    hostname: post-storage-memcached-jaeger-agent
+    command: ["--reporter.grpc.host-port=jaeger-collector:14250"]
+    ports:
+      - target: 6831
+        published: 6831
+        protocol: udp
+        mode: host
+      - target: 5778
+        published: 5778
+        protocol: tcp
+        mode: host
+      - target: 14271
+        published: 14271
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 1
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == post-storage-memcached
+      restart_policy:
+        condition: any
+    depends_on:
+      - jaeger-collector
+
+  post-storage-memcached:
+    depends_on:
+      - post-storage-memcached-jaeger-agent
+    deploy:
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == post-storage-memcached
+      replicas: 1
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+    hostname: post-storage-memcached
+    image: memcached
+
+  post-storage-mongodb-jaeger-agent:
+    image: jaegertracing/jaeger-agent:latest
+    hostname: post-storage-mongodb-jaeger-agent
+    command: ["--reporter.grpc.host-port=jaeger-collector:14250"]
+    ports:
+      - target: 6831
+        published: 6831
+        protocol: udp
+        mode: host
+      - target: 5778
+        published: 5778
+        protocol: tcp
+        mode: host
+      - target: 14271
+        published: 14271
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 1
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == post-storage-mongodb
+      restart_policy:
+        condition: any
+    depends_on:
+      - jaeger-collector
+
+  post-storage-mongodb:
+    depends_on:
+      - post-storage-mongodb-jaeger-agent
+    deploy:
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == post-storage-mongodb
+      replicas: 1
+      resources:
+        limits:
+          cpus: "20"
+          memory: 50G
+    hostname: post-storage-mongodb
+    image: mongo
+    command: "mongod --nojournal --quiet"
+    # command: "mongod --serviceExecutor adaptive --listenBacklog 1024 --syncdelay 3600 --wiredTigerCacheSizeGB 75"
+
+  post-storage-service-jaeger-agent:
+    image: jaegertracing/jaeger-agent:latest
+    hostname: post-storage-service-jaeger-agent
+    command: ["--reporter.grpc.host-port=jaeger-collector:14250"]
+    ports:
+      - target: 6831
+        published: 6831
+        protocol: udp
+        mode: host
+      - target: 5778
+        published: 5778
+        protocol: tcp
+        mode: host
+      - target: 14271
+        published: 14271
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 5
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == post-storage-service
+      restart_policy:
+        condition: any
+    depends_on:
+      - jaeger-collector
+
+  post-storage-service:
+    depends_on:
+      - post-storage-mongodb
+      - post-storage-service-jaeger-agent
+    deploy:
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == post-storage-service
+      replicas: 5
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+      restart_policy:
+        condition: any
+    command: ["PostStorageService"]
+    hostname: post-storage-service
+    image: yg397/social-network-microservices:root_cause-gcp
+    volumes:
+      - ./config:/social-network-microservices/config
+
+  social-graph-mongodb-jaeger-agent:
+    image: jaegertracing/jaeger-agent:latest
+    hostname: social-graph-mongodb-jaeger-agent
+    command: ["--reporter.grpc.host-port=jaeger-collector:14250"]
+    ports:
+      - target: 6831
+        published: 6831
+        protocol: udp
+        mode: host
+      - target: 5778
+        published: 5778
+        protocol: tcp
+        mode: host
+      - target: 14271
+        published: 14271
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 1
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == social-graph-mongodb
+      restart_policy:
+        condition: any
+    depends_on:
+      - jaeger-collector
+
+  social-graph-mongodb:
+    depends_on:
+      - social-graph-mongodb-jaeger-agent
+    deploy:
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == social-graph-mongodb
+      replicas: 1
+      resources:
+        limits:
+          cpus: "10"
+          memory: 20G
+    hostname: social-graph-mongodb
+    image: mongo
+    command: "mongod --nojournal --quiet"
+    # command: "mongod --serviceExecutor adaptive --listenBacklog 1024 --syncdelay 3600 --wiredTigerCacheSizeGB 16"
+
+  social-graph-redis-jaeger-agent:
+    image: jaegertracing/jaeger-agent:latest
+    hostname: social-graph-redis-jaeger-agent
+    command: ["--reporter.grpc.host-port=jaeger-collector:14250"]
+    ports:
+      - target: 6831
+        published: 6831
+        protocol: udp
+        mode: host
+      - target: 5778
+        published: 5778
+        protocol: tcp
+        mode: host
+      - target: 14271
+        published: 14271
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 5
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == social-graph-redis
+      restart_policy:
+        condition: any
+    depends_on:
+      - jaeger-collector
+
+  social-graph-redis:
+    depends_on:
+      - social-graph-redis-jaeger-agent
+    deploy:
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == social-graph-redis
+      replicas: 5
+      resources:
+        limits:
+          cpus: "2"
+          memory: 4G
+    hostname: social-graph-redis
+    image: redis
+    command: --port 6379 --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --appendonly yes
+
+  social-graph-service-jaeger-agent:
+    image: jaegertracing/jaeger-agent:latest
+    hostname: social-graph-service-jaeger-agent
+    command: ["--reporter.grpc.host-port=jaeger-collector:14250"]
+    ports:
+      - target: 6831
+        published: 6831
+        protocol: udp
+        mode: host
+      - target: 5778
+        published: 5778
+        protocol: tcp
+        mode: host
+      - target: 14271
+        published: 14271
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 5
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == social-graph-service
+      restart_policy:
+        condition: any
+    depends_on:
+      - jaeger-collector
+
+  social-graph-service:
+    depends_on:
+      - social-graph-service-jaeger-agent
+    deploy:
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == social-graph-service
+      replicas: 5
+      resources:
+        limits:
+          cpus: "4"
+          memory: 4G
+      restart_policy:
+        condition: any
+    command: ["SocialGraphService"]
+    hostname: social-graph-service
+    image: yg397/social-network-microservices:root_cause-gcp
+    volumes:
+      - ./config:/social-network-microservices/config
+
+  text-service-jaeger-agent:
+    image: jaegertracing/jaeger-agent:latest
+    hostname: text-service-jaeger-agent
+    command: ["--reporter.grpc.host-port=jaeger-collector:14250"]
+    ports:
+      - target: 6831
+        published: 6831
+        protocol: udp
+        mode: host
+      - target: 5778
+        published: 5778
+        protocol: tcp
+        mode: host
+      - target: 14271
+        published: 14271
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 5
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == text-service
+      restart_policy:
+        condition: any
+    depends_on:
+      - jaeger-collector
+
+  text-service:
+    depends_on:
+      - text-service-jaeger-agent
+    deploy:
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == text-service
+      replicas: 5
+      resources:
+        limits:
+          cpus: "8"
+          memory: 8G
+      restart_policy:
+        condition: any
+    command: ["TextService"]
+    hostname: text-service
+    image: yg397/social-network-microservices:root_cause-gcp
+
+  unique-id-service-jaeger-agent:
+    image: jaegertracing/jaeger-agent:latest
+    hostname: unique-id-service-jaeger-agent
+    command: ["--reporter.grpc.host-port=jaeger-collector:14250"]
+    ports:
+      - target: 6831
+        published: 6831
+        protocol: udp
+        mode: host
+      - target: 5778
+        published: 5778
+        protocol: tcp
+        mode: host
+      - target: 14271
+        published: 14271
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 5
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == unique-id-service
+      restart_policy:
+        condition: any
+    depends_on:
+      - jaeger-collector
+
+  unique-id-service:
+    depends_on:
+      - unique-id-service-jaeger-agent
+    deploy:
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == unique-id-service
+      replicas: 5
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+      restart_policy:
+        condition: any
+    command: ["UniqueIdService"]
+    hostname: unique-id-service
+    image: yg397/social-network-microservices:root_cause-gcp
+    volumes:
+      - ./config:/social-network-microservices/config
+
+  url-shorten-memcached-jaeger-agent:
+    image: jaegertracing/jaeger-agent:latest
+    hostname: url-shorten-memcached-jaeger-agent
+    command: ["--reporter.grpc.host-port=jaeger-collector:14250"]
+    ports:
+      - target: 6831
+        published: 6831
+        protocol: udp
+        mode: host
+      - target: 5778
+        published: 5778
+        protocol: tcp
+        mode: host
+      - target: 14271
+        published: 14271
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 1
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == url-shorten-memcached
+      restart_policy:
+        condition: any
+    depends_on:
+      - jaeger-collector
+
+  url-shorten-memcached:
+    depends_on:
+      - url-shorten-memcached-jaeger-agent
+    deploy:
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == url-shorten-memcached
+      replicas: 1
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+    hostname: url-shorten-memcached
+    image: memcached
+
+  url-shorten-mongodb-jaeger-agent:
+    image: jaegertracing/jaeger-agent:latest
+    hostname: url-shorten-mongodb-jaeger-agent
+    command: ["--reporter.grpc.host-port=jaeger-collector:14250"]
+    ports:
+      - target: 6831
+        published: 6831
+        protocol: udp
+        mode: host
+      - target: 5778
+        published: 5778
+        protocol: tcp
+        mode: host
+      - target: 14271
+        published: 14271
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 1
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == url-shorten-mongodb
+      restart_policy:
+        condition: any
+    depends_on:
+      - jaeger-collector
+
+  url-shorten-mongodb:
+    depends_on:
+      - url-shorten-mongodb-jaeger-agent
+    deploy:
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == url-shorten-mongodb
+      replicas: 1
+      resources:
+        limits:
+          cpus: "16"
+          memory: 40G
+    hostname: url-shorten-mongodb
+    image: mongo
+    command: "mongod --nojournal --quiet"
+    # command: "mongod --serviceExecutor adaptive --listenBacklog 1024 --syncdelay 3600 --wiredTigerCacheSizeGB 36"
+
+  url-shorten-service-jaeger-agent:
+    image: jaegertracing/jaeger-agent:latest
+    hostname: url-shorten-service-jaeger-agent
+    command: ["--reporter.grpc.host-port=jaeger-collector:14250"]
+    ports:
+      - target: 6831
+        published: 6831
+        protocol: udp
+        mode: host
+      - target: 5778
+        published: 5778
+        protocol: tcp
+        mode: host
+      - target: 14271
+        published: 14271
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 5
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == url-shorten-service
+      restart_policy:
+        condition: any
+    depends_on:
+      - jaeger-collector
+
+  url-shorten-service:
+    depends_on:
+      - url-shorten-mongodb
+      - url-shorten-service-jaeger-agent
+    deploy:
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == url-shorten-service
+      replicas: 5
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+      restart_policy:
+        condition: any
+    command: ["UrlShortenService"]
+    hostname: url-shorten-service
+    image: yg397/social-network-microservices:root_cause-gcp
+    volumes:
+      - ./config:/social-network-microservices/config
+
+  user-memcached-jaeger-agent:
+    image: jaegertracing/jaeger-agent:latest
+    hostname: user-memcached-jaeger-agent
+    command: ["--reporter.grpc.host-port=jaeger-collector:14250"]
+    ports:
+      - target: 6831
+        published: 6831
+        protocol: udp
+        mode: host
+      - target: 5778
+        published: 5778
+        protocol: tcp
+        mode: host
+      - target: 14271
+        published: 14271
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 1
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == user-memcached
+      restart_policy:
+        condition: any
+    depends_on:
+      - jaeger-collector
+
+  user-memcached:
+    depends_on:
+      - user-memcached-jaeger-agent
+    deploy:
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == user-memcached
+      replicas: 1
+      resources:
+        limits:
+          cpus: "8"
+          memory: 20G
+    hostname: user-memcached
+    image: memcached
+    command: 
+      - "-m 16384"
+      - "-t 8"
+      - "-I 32m"
+      - "-c 4096"
+
+  user-mention-service-jaeger-agent:
+    image: jaegertracing/jaeger-agent:latest
+    hostname: user-mention-service-jaeger-agent
+    command: ["--reporter.grpc.host-port=jaeger-collector:14250"]
+    ports:
+      - target: 6831
+        published: 6831
+        protocol: udp
+        mode: host
+      - target: 5778
+        published: 5778
+        protocol: tcp
+        mode: host
+      - target: 14271
+        published: 14271
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 5
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == user-mention-service
+      restart_policy:
+        condition: any
+    depends_on:
+      - jaeger-collector
+
+  user-mention-service:
+    depends_on:
+      - user-mention-service-jaeger-agent
+    deploy:
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == user-mention-service
+      replicas: 5
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+      restart_policy:
+        condition: any
+    command: ["UserMentionService"]
+    hostname: user-mention-service
+    image: yg397/social-network-microservices:root_cause-gcp
+    volumes:
+      - ./config:/social-network-microservices/config
+
+  user-mongodb-jaeger-agent:
+    image: jaegertracing/jaeger-agent:latest
+    hostname: user-mongodb-jaeger-agent
+    command: ["--reporter.grpc.host-port=jaeger-collector:14250"]
+    ports:
+      - target: 6831
+        published: 6831
+        protocol: udp
+        mode: host
+      - target: 5778
+        published: 5778
+        protocol: tcp
+        mode: host
+      - target: 14271
+        published: 14271
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 1
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == user-mongodb
+      restart_policy:
+        condition: any
+    depends_on:
+      - jaeger-collector
+
+  user-mongodb:
+    depends_on:
+      - user-mongodb-jaeger-agent
+    deploy:
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == user-mongodb
+      replicas: 1
+      resources:
+        limits:
+          cpus: "2"
+          memory: 8G
+    hostname: user-mongodb
+    image: mongo
+    command: "mongod --nojournal --quiet"
+    # command: "mongod --serviceExecutor adaptive --listenBacklog 1024 --syncdelay 3600 --wiredTigerCacheSizeGB 8"
+
+  user-service-jaeger-agent:
+    image: jaegertracing/jaeger-agent:latest
+    hostname: user-service-jaeger-agent
+    command: ["--reporter.grpc.host-port=jaeger-collector:14250"]
+    ports:
+      - target: 6831
+        published: 6831
+        protocol: udp
+        mode: host
+      - target: 5778
+        published: 5778
+        protocol: tcp
+        mode: host
+      - target: 14271
+        published: 14271
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 5
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == user-service
+      restart_policy:
+        condition: any
+    depends_on:
+      - jaeger-collector
+
+  user-service:
+    depends_on:
+      - user-mongodb
+      - user-service-jaeger-agent
+    deploy:
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == user-service
+      replicas: 5
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+      restart_policy:
+        condition: any
+    command: ["UserService"]
+    hostname: user-service
+    image: yg397/social-network-microservices:root_cause-gcp
+    volumes:
+      - ./config:/social-network-microservices/config
+
+  user-timeline-mongodb-jaeger-agent:
+    image: jaegertracing/jaeger-agent:latest
+    hostname: user-timeline-mongodb-jaeger-agent
+    command: ["--reporter.grpc.host-port=jaeger-collector:14250"]
+    ports:
+      - target: 6831
+        published: 6831
+        protocol: udp
+        mode: host
+      - target: 5778
+        published: 5778
+        protocol: tcp
+        mode: host
+      - target: 14271
+        published: 14271
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 1
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == user-timeline-mongodb
+      restart_policy:
+        condition: any
+    depends_on:
+      - jaeger-collector
+
+  user-timeline-mongodb:
+    depends_on:
+      - user-timeline-mongodb-jaeger-agent
+    deploy:
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == user-timeline-mongodb
+      replicas: 1
+      resources:
+        limits:
+          cpus: "40"
+          memory: 40G
+    hostname: user-timeline-mongodb
+    image: mongo
+    command: "mongod --nojournal --quiet"
+    # command: "mongod --serviceExecutor adaptive --listenBacklog 1024 --syncdelay 3600 --wiredTigerCacheSizeGB 75"
+
+  user-timeline-redis-jaeger-agent:
+    image: jaegertracing/jaeger-agent:latest
+    hostname: user-timeline-redis-jaeger-agent
+    command: ["--reporter.grpc.host-port=jaeger-collector:14250"]
+    ports:
+      - target: 6831
+        published: 6831
+        protocol: udp
+        mode: host
+      - target: 5778
+        published: 5778
+        protocol: tcp
+        mode: host
+      - target: 14271
+        published: 14271
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 5
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == user-timeline-redis
+      restart_policy:
+        condition: any
+    depends_on:
+      - jaeger-collector
+
+  user-timeline-redis:
+    depends_on:
+      - user-timeline-redis-jaeger-agent
+    deploy:
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == user-timeline-redis
+      replicas: 5
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+    hostname: user-timeline-redis
+    image: redis
+    command: --port 6379 --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --appendonly yes
+
+
+  user-timeline-service-jaeger-agent:
+    image: jaegertracing/jaeger-agent:latest
+    hostname: user-timeline-service-jaeger-agent
+    command: ["--reporter.grpc.host-port=jaeger-collector:14250"]
+    ports:
+      - target: 6831
+        published: 6831
+        protocol: udp
+        mode: host
+      - target: 5778
+        published: 5778
+        protocol: tcp
+        mode: host
+      - target: 14271
+        published: 14271
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 5
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == user-timeline-service
+      restart_policy:
+        condition: any
+    depends_on:
+      - jaeger-collector
+
+  user-timeline-service:
+    depends_on:
+      - user-timeline-mongodb
+      - user-timeline-service-jaeger-agent
+    deploy:
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.type == user-timeline-service
+      replicas: 5
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+      restart_policy:
+        condition: any
+    command: ["UserTimelineService"]
+    hostname: user-timeline-service
+    image: yg397/social-network-microservices:root_cause-gcp
+    volumes:
+      - ./config:/social-network-microservices/config
+
+  jaeger-collector:
+    image: jaegertracing/jaeger-collector
+    command:
+      [
+        "--cassandra.keyspace=jaeger_v1_dc1",
+        "--cassandra.servers=cassandra",
+        "--collector.zipkin.http-port=9411",
+        "--collector.num-workers=100",
+        "--collector.queue-size=100000"
+      ]
+    ports:
+      - "14269:14269"
+    deploy:
+      replicas: 20
+      placement:
+        constraints:
+          - node.labels.type == jaeger
+      restart_policy:
+        condition: any
+    depends_on:
+      - cassandra-schema
+
+  jaeger-query:
+    image: jaegertracing/jaeger-query
+    command:
+      ["--cassandra.keyspace=jaeger_v1_dc1", "--cassandra.servers=cassandra"]
+    ports:
+      - "16686:16686"
+    deploy:
+      placement:
+        constraints:
+          - node.labels.type == jaeger
+      restart_policy:
+        condition: any
+    depends_on:
+      - cassandra-schema
+
+  cassandra-schema:
+    image: jaegertracing/jaeger-cassandra-schema
+    deploy:
+      placement:
+        constraints:
+          - node.labels.type == jaeger
+      restart_policy:
+        condition: on-failure
+    depends_on:
+      - cassandra
+
+  cassandra:
+    image: cassandra:3.9
+    deploy:
+      placement:
+        constraints:
+          - node.labels.type == jaeger
+
+networks:
+  default:
+    driver: overlay
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.11.0.0/16
